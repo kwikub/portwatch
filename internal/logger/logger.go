@@ -9,27 +9,42 @@ import (
 	"github.com/user/portwatch/internal/scanner"
 )
 
-// Logger writes port change events to an output.
+// Logger writes port diff events to an output sink.
 type Logger struct {
-	out io.Writer
+	out    io.Writer
+	closer io.Closer // non-nil when we own the file
 }
 
-// New creates a Logger writing to the given writer.
-// If w is nil, os.Stdout is used.
-func New(w io.Writer) *Logger {
-	if w == nil {
-		w = os.Stdout
+// New creates a Logger. If path is empty, output goes to stdout.
+func New(path string) (*Logger, error) {
+	if path == "" {
+		return &Logger{out: os.Stdout}, nil
 	}
-	return &Logger{out: w}
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	return &Logger{out: f, closer: f}, nil
 }
 
-// Log writes a human-readable line for each diff entry.
-func (l *Logger) Log(diffs []scanner.DiffEntry) {
+// Close releases any underlying file resource.
+func (l *Logger) Close() error {
+	if l.closer != nil {
+		return l.closer.Close()
+	}
+	return nil
+}
+
+// Log writes one line per diff entry.
+func (l *Logger) Log(diffs []scanner.Diff) error {
 	for _, d := range diffs {
-		timestamp := time.Now().Format(time.RFC3339)
-		fmt.Fprintf(l.out, "%s  %-8s  %s:%d\n",
-			timestamp, label(d.State), d.Entry.Host, d.Entry.Port)
+		ts := time.Now().UTC().Format(time.RFC3339)
+		_, err := fmt.Fprintf(l.out, "%s  %-6s  %s/%d\n", ts, label(d.State), d.Protocol, d.Port)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func label(state scanner.State) string {

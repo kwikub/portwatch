@@ -1,48 +1,54 @@
 package scanner
 
-// ChangeType describes how a port's state changed between scans.
-type ChangeType string
+// State represents whether a port was opened or closed.
+type State int
 
 const (
-	Opened ChangeType = "opened"
-	Closed ChangeType = "closed"
+	StateOpened State = iota
+	StateClosed
 )
 
-// Change represents a detected change in port state.
-type Change struct {
-	PortState
-	Change ChangeType
+// Diff describes a single port state change.
+type Diff struct {
+	Protocol string
+	Port     int
+	State    State
 }
 
-// Diff compares two snapshots (previous, current) and returns any changes.
-// Both slices must be sorted by Port and cover the same range.
-func Diff(previous, current []PortState) []Change {
-	prev := index(previous)
-	var changes []Change
+// Diff computes the changes between two port snapshots.
+func Diff(prev, curr []PortInfo) []Diff {
+	prevIdx := index(prev)
+	currIdx := index(curr)
 
-	for _, cur := range current {
-		key := portKey(cur.Port, cur.Protocol)
-		old, exists := prev[key]
-		switch {
-		case !exists && cur.Open:
-			changes = append(changes, Change{PortState: cur, Change: Opened})
-		case exists && old.Open && !cur.Open:
-			changes = append(changes, Change{PortState: cur, Change: Closed})
-		case exists && !old.Open && cur.Open:
-			changes = append(changes, Change{PortState: cur, Change: Opened})
+	var diffs []Diff
+
+	for k, p := range currIdx {
+		if _, existed := prevIdx[k]; !existed {
+			diffs = append(diffs, Diff{Protocol: p.Protocol, Port: p.Port, State: StateOpened})
 		}
 	}
-	return changes
+
+	for k, p := range prevIdx {
+		if _, exists := currIdx[k]; !exists {
+			diffs = append(diffs, Diff{Protocol: p.Protocol, Port: p.Port, State: StateClosed})
+		}
+	}
+
+	return diffs
 }
 
-func index(states []PortState) map[string]PortState {
-	m := make(map[string]PortState, len(states))
-	for _, s := range states {
-		m[portKey(s.Port, s.Protocol)] = s
+func index(ports []PortInfo) map[string]PortInfo {
+	m := make(map[string]PortInfo, len(ports))
+	for _, p := range ports {
+		m[portKey(p)] = p
 	}
 	return m
 }
 
-func portKey(port int, protocol string) string {
-	return protocol + ":" + string(rune(port))
+func portKey(p PortInfo) string {
+	return p.Protocol + ":" + itoa(p.Port)
+}
+
+func itoa(n int) string {
+	return fmt.Sprintf("%d", n)
 }
