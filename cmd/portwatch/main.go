@@ -19,9 +19,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	log,LogFile)
+	log, err := logger.New(cfg.LogFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, to open log: %v\n", err)
+		fmt.Fprintf(os.Stderr, "portwatch: failed to open log: %v\n", err)
 		os.Exit(1)
 	}
 	defer log.Close()
