@@ -39,3 +39,16 @@ func TestExcluder_ProtocolMismatchKeepsAll(t *testing.T) {
 		t.Fatalf("expected 2 ports, got %d", len(out.Ports))
 	}
 }
+
+func TestExcluder_MultiplePortsInRule(t *testing.T) {
+	e := filter.NewExcluder([]filter.ExcludeRule{
+		{Ports: []uint16{22, 80}, Protocol: "tcp"},
+	})
+	out := e.Apply(snap([]uint16{22, 80, 443}))
+	if len(out.Ports) != 1 {
+		t.Fatalf("expected 1 port, got %d", len(out.Ports))
+	}
+	if out.Ports[0] != 443 {
+		t.Fatalf("expected port 443, got %d", out.Ports[0])
+	}
+}
