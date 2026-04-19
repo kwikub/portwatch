@@ -42,6 +42,18 @@ func TestAdd_EmptyLabel(t *testing.T) {
 	}
 }
 
+func TestAdd_DuplicateOverwrites(t *testing.T) {
+	r := New()
+	_ = r.Add(80, "tcp", "HTTP")
+	if err := r.Add(80, "tcp", "Web"); err != nil {
+		t.Fatalf("unexpected error on duplicate add: %v", err)
+	}
+	label, ok := r.Lookup(80, "tcp")
+	if !ok || label != "Web" {
+		t.Fatalf("expected Web after overwrite, got %q ok=%v", label, ok)
+	}
+}
+
 func TestLookup_MissingReturnsNotFound(t *testing.T) {
 	r := New()
 	_, ok := r.Lookup(9999, "tcp")
