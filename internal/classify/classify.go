@@ -54,3 +54,19 @@ func (c *Classifier) ClassifyAll(diffs []scanner.Diff) map[int]Level {
 	}
 	return out
 }
+
+// Filter returns only the diffs whose classified level matches one of the
+// provided levels. Useful for alerting on warnings and criticals only.
+func (c *Classifier) Filter(diffs []scanner.Diff, levels ...Level) []scanner.Diff {
+	want := make(map[Level]bool, len(levels))
+	for _, l := range levels {
+		want[l] = true
+	}
+	var out []scanner.Diff
+	for _, d := range diffs {
+		if want[c.Classify(d)] {
+			out = append(out, d)
+		}
+	}
+	return out
+}
