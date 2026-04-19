@@ -1,5 +1,7 @@
 package scanner
 
+import "fmt"
+
 // State represents whether a port was opened or closed.
 type State int
 
@@ -15,8 +17,20 @@ type Diff struct {
 	State    State
 }
 
-// Diff computes the changes between two port snapshots.
-func Diff(prev, curr []PortInfo) []Diff {
+// String returns a human-readable representation of the Diff.
+func (d Diff) String() string {
+	switch d.State {
+	case StateOpened:
+		return fmt.Sprintf("%s/%d opened", d.Protocol, d.Port)
+	case StateClosed:
+		return fmt.Sprintf("%s/%d closed", d.Protocol, d.Port)
+	default:
+		return fmt.Sprintf("%s/%d unknown state", d.Protocol, d.Port)
+	}
+}
+
+// ComputeDiff computes the changes between two port snapshots.
+func ComputeDiff(prev, curr []PortInfo) []Diff {
 	prevIdx := index(prev)
 	currIdx := index(curr)
 
@@ -46,9 +60,5 @@ func index(ports []PortInfo) map[string]PortInfo {
 }
 
 func portKey(p PortInfo) string {
-	return p.Protocol + ":" + itoa(p.Port)
-}
-
-func itoa(n int) string {
-	return fmt.Sprintf("%d", n)
+	return fmt.Sprintf("%s:%d", p.Protocol, p.Port)
 }
