@@ -39,6 +39,14 @@ func TestAllow_DifferentPortsAreIndependent(t *testing.T) {
 	}
 }
 
+func TestAllow_DifferentProtocolsSamePortAreIndependent(t *testing.T) {
+	th := throttle.New(time.Second)
+	th.Allow("tcp", 53)
+	if !th.Allow("udp", 53) {
+		t.Fatal("expected udp:53 to be independent of tcp:53")
+	}
+}
+
 func TestReset_AllowsImmediateRetry(t *testing.T) {
 	th := throttle.New(time.Second)
 	th.Allow("udp", 53)
