@@ -74,3 +74,10 @@ func (t *Tracker) Evict(port int, proto string) {
 	defer t.mu.Unlock()
 	delete(t.closed, key(port, proto))
 }
+
+// Len returns the number of ports currently tracked as closed.
+func (t *Tracker) Len() int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return len(t.closed)
+}
